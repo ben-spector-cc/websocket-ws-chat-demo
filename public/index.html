@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <title>ChatCademy</title>
+</head>
+<body>
+  <h2>ChatCademy</h2>
+  <div class="chat"></div>
+  <form id="messageForm">
+    <input type="text" id="messageBox" placeholder="Type your message here" />
+    <button id="send" title="Send">➤</button>
+  </form>
+  
+  <script>
+    (function() {
+
+      // Constants
+      const PORT = 8080;
+      const CLIENT_MESSAGE = {
+        NEW_USER: 'NEW_USER',
+        NEW_MESSAGE: 'NEW_MESSAGE'
+      };
+      const SERVER_BROADCAST = {
+        NEW_USER: 'NEW_USER',
+        NEW_MESSAGE: 'NEW_MESSAGE'
+      };  
+      
+      // DOM Elements
+      const sendBtn = document.querySelector('#send');
+      const messages = document.querySelector('.chat');
+      const messageBox = document.querySelector('#messageBox');
+      const messageForm = document.querySelector('#messageForm');
+      
+      // Application Variables
+      let ws;
+      let name = '';
+
+      ////////////////////////////////////////////////
+      //////////////// DOM LOGIC /////////////////////
+      ////////////////////////////////////////////////
+  
+      function showNewMessage(message, className) {
+        const textNode = document.createElement('div');
+        textNode.innerHTML = message;
+        textNode.className = 'message';
+        
+        const messageNode = document.createElement('div');
+        messageNode.className = 'messages ' + className;
+        messageNode.appendChild(textNode);
+        
+        messages.appendChild(messageNode);
+        messages.scrollTop = messages.scrollHeight;
+      }
+      function showOwnMessage(message) { showNewMessage(message, 'mine'); }
+      function showReceivedMessage(message) { showNewMessage(message, 'yours'); }
+      
+      messageForm.onsubmit = function(e) {
+        e.preventDefault();
+
+        if (!ws) {
+          showReceivedMessage('No WebSocket connection :(');
+          return;
+        }
+
+        // Get the message from the messageBox
+        const message = messageBox.value;
+
+        // Send the name of the sender and the message to the server
+        ws.send(JSON.stringify({
+          type: CLIENT_MESSAGE.NEW_MESSAGE,
+          payload: { name, message }
+        }));
+
+        // Render the sent message on the client as your own and reset the messageBox
+        showOwnMessage(message);
+        messageBox.value = '';
+      }
+
+      ////////////////////////////////////////////////
+      ///////////////// WS LOGIC /////////////////////
+      ////////////////////////////////////////////////
+
+      function init() {
+        // if a WebSocket connection exists already, close it
+        if (ws) {
+          ws.onerror = ws.onopen = ws.onclose = null;
+          ws.close();
+        }
+  
+        // create a new WebSocket connection with the server using the ws protocol
+        ws = new WebSocket('ws://localhost:' + PORT);
+  
+        // .onopen() is executed when a connection is made (when the handshake completes)
+        ws.onopen = () => {
+          console.log('Connection opened!', ws);
+          name = prompt('choose a name');
+          
+          ws.send(JSON.stringify({
+            type: CLIENT_MESSAGE.NEW_USER,
+            payload: { name }
+          }));
+        }
+  
+        // .onmessage() is executed when the server sends data to a WebSocket client
+        ws.onmessage = ({ data }) => {
+          const { type, payload } = JSON.parse(data);
+    
+          console.log(type, payload);
+          
+          switch (type) {
+            case SERVER_BROADCAST.NEW_USER:
+              showReceivedMessage(`<em>${payload.name} joined at ${payload.time}</em>`)
+              break;
+            case SERVER_BROADCAST.NEW_MESSAGE:
+              showReceivedMessage(`<strong>[${payload.name}]</strong> ${payload.message}`);
+              break;
+            default:
+              break;
+          }
+        };
+
+        // .onclose is executed when the socket connection is closed
+        ws.onclose = function() {
+          showReceivedMessage('No WebSocket connection :(');
+          ws = null;
+        }
+
+        // .onerror is executed when error event occurs on the WebSocket connection
+        ws.onerror = function(e) {
+          console.error("WebSocket error observed:", e);
+          ws = null;
+        }
+      }
+  
+      init();
+    })();
+  </script>
+</body>
+</html>

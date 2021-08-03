@@ -1,17 +1,11 @@
+const CONSTANTS = require('./utils/constants.js');
 const https = require('https');
-const WebSocket = require('ws');
 const fs = require('fs');
+const path = require('path');
+const WebSocket = require('ws');
 
 // Constants
-const PORT = process.env.PORT || 8080;
-const CLIENT_MESSAGE = {
-  NEW_USER: 'NEW_USER',
-  NEW_MESSAGE: 'NEW_MESSAGE'
-};
-const SERVER_BROADCAST = {
-  NEW_USER: 'NEW_USER',
-  NEW_MESSAGE: 'NEW_MESSAGE'
-};
+const { PORT, CLIENT, SERVER } = CONSTANTS;
 
 // ssl cert/key generated using the following terminal command:
 // openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 100 -nodes
@@ -21,13 +15,18 @@ const credentials = { key: privateKey, cert: certificate };
 
 // Create the HTTPS server
 const server = https.createServer(credentials, (req, res) => {
-  if (req.url === '/styles.css') {
-    res.writeHead(200, { 'Content-Type': 'text/css' }); // http header
-    fs.createReadStream('public/styles.css', 'utf8').pipe(res);
-  } else {
-    res.writeHead(200, { 'Content-Type': 'text/html' }); // http header
-    fs.createReadStream('public/index.secure.html', 'utf8').pipe(res);
-  }
+  // get the file path from req.url, or '/public/index.html' if req.url is '/'
+  const filePath = ( req.url === '/' ) ? '/public/index.secure.html' : req.url;
+
+  // determine the contentType by the file extension
+  const extname = path.extname(filePath);
+  let contentType = 'text/html';
+  if (extname === '.js') contentType = 'text/javascript';
+  else if (extname === '.css') contentType = 'text/css';
+
+  // pipe the proper file to the res object
+  res.writeHead(200, { 'Content-Type': contentType });
+  fs.createReadStream(`${__dirname}/${filePath}`, 'utf8').pipe(res);
 });
 
 // Create the WebSocket Server (ws) using the HTTPS server
@@ -55,16 +54,16 @@ wsServer.on('connection', (socket) => {
     console.log(type, payload);
     
     switch (type) {
-      case CLIENT_MESSAGE.NEW_USER:
+      case CLIENT.MESSAGE.NEW_USER:
         const time = new Date().toLocaleString();
         broadcast({
-          type: SERVER_BROADCAST.NEW_USER,
+          type: SERVER.BROADCAST.NEW_USER,
           payload: { name: payload.name, time }
         })
         break;
-      case CLIENT_MESSAGE.NEW_MESSAGE:
+      case CLIENT.MESSAGE.NEW_MESSAGE:
         broadcast({
-          type: SERVER_BROADCAST.NEW_MESSAGE,
+          type: SERVER.BROADCAST.NEW_MESSAGE,
           payload: { name: payload.name, message: payload.message }
         }, socket)
         break;

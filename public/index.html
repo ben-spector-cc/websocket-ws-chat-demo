@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="/public/styles.css">
+  <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
+  <script src="/utils/constants.js"></script>
   <title>ChatCademy</title>
 </head>
 <body>
@@ -17,17 +19,6 @@
   
   <script>
     (function() {
-
-      // Constants
-      const PORT = 8080;
-      const CLIENT_MESSAGE = {
-        NEW_USER: 'NEW_USER',
-        NEW_MESSAGE: 'NEW_MESSAGE'
-      };
-      const SERVER_BROADCAST = {
-        NEW_USER: 'NEW_USER',
-        NEW_MESSAGE: 'NEW_MESSAGE'
-      };  
       
       // DOM Elements
       const sendBtn = document.querySelector('#send');
@@ -71,7 +62,7 @@
 
         // Send the name of the sender and the message to the server
         ws.send(JSON.stringify({
-          type: CLIENT_MESSAGE.NEW_MESSAGE,
+          type: CLIENT.MESSAGE.NEW_MESSAGE,
           payload: { name, message }
         }));
 
@@ -100,7 +91,7 @@
           name = prompt('choose a name');
           
           ws.send(JSON.stringify({
-            type: CLIENT_MESSAGE.NEW_USER,
+            type: CLIENT.MESSAGE.NEW_USER,
             payload: { name }
           }));
         }
@@ -112,10 +103,10 @@
           console.log(type, payload);
           
           switch (type) {
-            case SERVER_BROADCAST.NEW_USER:
+            case SERVER.BROADCAST.NEW_USER:
               showReceivedMessage(`<em>${payload.name} joined at ${payload.time}</em>`)
               break;
-            case SERVER_BROADCAST.NEW_MESSAGE:
+            case SERVER.BROADCAST.NEW_MESSAGE:
               showReceivedMessage(`<strong>[${payload.name}]</strong> ${payload.message}`);
               break;
             default:

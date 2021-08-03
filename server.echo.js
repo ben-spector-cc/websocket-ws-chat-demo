@@ -1,19 +1,26 @@
+const CONSTANTS = require('./utils/constants.js');
 const http = require('http');
-const WebSocket = require('ws');
 const fs = require('fs');
+const path = require('path');
+const WebSocket = require('ws');
 
 // Constants
-const PORT = process.env.PORT || 8080;
+const { PORT, CLIENT, SERVER } = CONSTANTS;
 
 // Create the HTTP server
 const server = http.createServer((req, res) => {
-  if (req.url === '/styles.css') {
-    res.writeHead(200, { 'Content-Type': 'text/css' }); // http header
-    fs.createReadStream('public/styles.css', 'utf8').pipe(res);
-  } else {
-    res.writeHead(200, { 'Content-Type': 'text/html' }); // http header
-    fs.createReadStream('public/index.echo.html', 'utf8').pipe(res);
-  }
+  // get the file path from req.url, or '/public/index.html' if req.url is '/'
+  const filePath = ( req.url === '/' ) ? '/public/index.echo.html' : req.url;
+
+  // determine the contentType by the file extension
+  const extname = path.extname(filePath);
+  let contentType = 'text/html';
+  if (extname === '.js') contentType = 'text/javascript';
+  else if (extname === '.css') contentType = 'text/css';
+
+  // pipe the proper file to the res object
+  res.writeHead(200, { 'Content-Type': contentType });
+  fs.createReadStream(`${__dirname}/${filePath}`, 'utf8').pipe(res);
 });
 
 // Create the WebSocket Server (ws) using the HTTP server

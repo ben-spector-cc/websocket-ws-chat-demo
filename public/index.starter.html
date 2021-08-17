@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/public/styles.css">
+  <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
+  <script src="/utils/constants.js"></script>
+  <title>ChatCademy</title>
+</head>
+<body>
+  <h2>ChatCademy</h2>
+  <div class="chat"></div>
+  <form id="messageForm">
+    <input type="text" id="messageBox" placeholder="Type your message here" />
+    <button id="send" title="Send">➤</button>
+  </form>
+  
+  <script>
+    // DOM Elements
+    const sendBtn = document.querySelector('#send');
+    const messages = document.querySelector('.chat');
+    const messageBox = document.querySelector('#messageBox');
+    const messageForm = document.querySelector('#messageForm');
+
+    // Application Variables
+    let ws;
+    let name = '';
+
+    ////////////////////////////////////////////////
+    //////////////// DOM LOGIC /////////////////////
+    ////////////////////////////////////////////////
+
+    function showNewMessage(message, className) {
+      const textNode = document.createElement('div');
+      textNode.innerHTML = message;
+      textNode.className = 'message';
+      
+      const messageNode = document.createElement('div');
+      messageNode.className = 'messages ' + className;
+      messageNode.appendChild(textNode);
+      
+      messages.appendChild(messageNode);
+      messages.scrollTop = messages.scrollHeight;
+    }
+    function showOwnMessage(message) { showNewMessage(message, 'mine'); }
+    function showReceivedMessage(message) { showNewMessage(message, 'yours'); }
+    
+    messageForm.onsubmit = function(e) {
+      e.preventDefault();
+      
+      const message = messageBox.value;
+      showOwnMessage(message);
+      messageBox.value = '';
+    }
+    
+    ////////////////////////////////////////////////
+    ///////////////// WS LOGIC /////////////////////
+    ////////////////////////////////////////////////      
+
+    function init() {
+      // if a WebSocket connection exists already, close it
+    
+      // create a new WebSocket connection with the server using the ws protocol
+      
+      // .onopen() is executed when a connection is made (when the handshake completes)
+      
+      // .onmessage() is executed when the server sends data to a WebSocket client
+
+      // .onclose is executed when the socket connection is closed
+
+      // .onclose is executed when the socket connection is closed
+
+      // .onerror is executed when error event occurs on the WebSocket connection
+      
+    }
+
+    init();
+  </script>
+</body>
+</html>

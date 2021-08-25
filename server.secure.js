@@ -1,10 +1,15 @@
-const CONSTANTS = require('./utils/constants.js');
-const https = require('https');
+///////////////////////////////////////////////
+///////////// IMPORTS + VARIABLES /////////////
+///////////////////////////////////////////////
+
+// Node Modules
+const https = require('http');
 const fs = require('fs');
 const path = require('path');
 const WebSocket = require('ws');
 
-// Constants
+// You may choose to use the constants defined in the file below
+const CONSTANTS = require('./utils/constants.js');
 const { PORT, CLIENT, SERVER } = CONSTANTS;
 
 // ssl cert/key generated using the following terminal command:
@@ -13,8 +18,11 @@ const privateKey = fs.readFileSync('../sslcert/key.pem', 'utf8');
 const certificate = fs.readFileSync('../sslcert/cert.pem', 'utf8');
 const credentials = { key: privateKey, cert: certificate };
 
-// Create the HTTPS server
-const server = https.createServer(credentials, (req, res) => {
+///////////////////////////////////////////////
+///////////// HTTP SERVER LOGIC ///////////////
+///////////////////////////////////////////////
+
+const httpServer = https.createServer(credentials, (req, res) => {
   // get the file path from req.url, or '/public/index.html' if req.url is '/'
   const filePath = ( req.url === '/' ) ? '/public/index.secure.html' : req.url;
 
@@ -29,22 +37,29 @@ const server = https.createServer(credentials, (req, res) => {
   fs.createReadStream(`${__dirname}/${filePath}`, 'utf8').pipe(res);
 });
 
-// Create the WebSocket Server (ws) using the HTTPS server
-const wsServerOptions = { server };
+///////////////////////////////////////////////
+////////////////// WS LOGIC ///////////////////
+///////////////////////////////////////////////
+
+const wsServerOptions = { server: httpServer };
 const wsServer = new WebSocket.Server(wsServerOptions);
 
-// include a socket if you want to leave it out, otherwise broadcast to every open socket
+// This function should emit a message to every client connected to the server 
+// If provided, do not send the message to the client provided by the socketToOmit argument
 function broadcast(data, socketToOmit) {
   // All connected sockets can be found at wsServer.clients
   wsServer.clients.forEach((client) => {
-    // Send to all clients in the open readyState, excluding the socketToOmit if provided
+    // Send to all clients in the open readyState, excluding the socketToOmit (if provided)
     if (client.readyState === WebSocket.OPEN && client !== socketToOmit) {
       client.send(JSON.stringify(data));
     }
   });
 }
 
-// a new socket will be created for each individual client
+
+// The callback provided to .on() will be executed each time the server detects a 'connection' event. It receives a socket object as an argument
+// The callback should print that new connection has been made to the server's terminal.
+// Define a callback handler on each client for 'message' events. 
 wsServer.on('connection', (socket) => {
   console.log('new connection!');
 
@@ -74,6 +89,6 @@ wsServer.on('connection', (socket) => {
 });
 
 // Start the server listening on localhost:8080
-server.listen(PORT, () => {
-  console.log(`Listening on: https://localhost:${server.address().port}`);
+httpServer.listen(PORT, () => {
+  console.log(`Listening on: https://localhost:${httpServer.address().port}`);
 });

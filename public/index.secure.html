@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="/public/styles.css">
   <link rel="icon" href="/public/favicon.ico" type="image/x-icon" />
+  <!-- You may choose to use the message constants defined in the file below -->
   <script src="/utils/constants.js"></script>
   <title>ChatCademy</title>
 </head>
@@ -25,107 +26,129 @@
     const messageForm = document.querySelector('#messageForm');
     
     // Application Variables
-    let ws;
+    let wsClient;
     let name = '';
 
     ////////////////////////////////////////////////
     //////////////// DOM LOGIC /////////////////////
     ////////////////////////////////////////////////
 
-    function showNewMessage(message, className) {
-      const textNode = document.createElement('div');
-      textNode.innerHTML = message;
-      textNode.className = 'message';
-      
-      const messageNode = document.createElement('div');
-      messageNode.className = 'messages ' + className;
-      messageNode.appendChild(textNode);
-      
-      messages.appendChild(messageNode);
-      messages.scrollTop = messages.scrollHeight;
-    }
-    function showOwnMessage(message) { showNewMessage(message, 'mine'); }
-    function showReceivedMessage(message) { showNewMessage(message, 'yours'); }
+    const showMessageSent = (message) => { showNewMessage(message, 'sending'); }
+    const showMessageReceived = (message) => { showNewMessage(message, 'receiving'); }
     
     messageForm.onsubmit = function(e) {
       e.preventDefault();
 
-      if (!ws) {
-        showReceivedMessage('No WebSocket connection :(');
+      // Make sure the client is connected to the ws server
+      if (!wsClient) {
+        showMessageReceived('No WebSocket connection :(');
         return;
       }
 
       // Get the message from the messageBox
       const message = messageBox.value;
 
-      // Send the name of the sender and the message to the server
-      ws.send(JSON.stringify({
+      // Level 1: Send the message from the messageBox to the server
+      // Level 2: Send the message in a custom message object with .type and .payload properties
+      // Level 3: Send the name along with the message in the .payload
+      wsClient.send(JSON.stringify({
         type: CLIENT.MESSAGE.NEW_MESSAGE,
         payload: { name, message }
       }));
 
       // Render the sent message on the client as your own and reset the messageBox
-      showOwnMessage(message);
+      showMessageSent(message);
       messageBox.value = '';
     }
 
     ////////////////////////////////////////////////
-    ///////////////// WS LOGIC /////////////////////
+    ////////////// WS CLIENT LOGIC /////////////////
     ////////////////////////////////////////////////
 
     function init() {
       // if a WebSocket connection exists already, close it
-      if (ws) {
-        ws.onerror = ws.onopen = ws.onclose = null;
-        ws.close();
+      if (wsClient) {
+        wsClient.onerror = wsClient.onopen = wsClient.onclose = null;
+        wsClient.close();
       }
 
-      // create a new WebSocket connection with the server using the ws protocol
-      ws = new WebSocket('wss://localhost:' + PORT);
+      // Level 1: Create a new WebSocket connection with the server using the ws protocol.
+      // Level 2: Use the wss:// protocol instead of the ws:// (Make sure to also use HTTPS instead of HTTP)
+      wsClient = new WebSocket('wss://localhost:' + PORT);
 
       // .onopen() is executed when a connection is made (when the handshake completes)
-      ws.onopen = () => {
-        console.log('Connection opened!', ws);
+      // Level 1: This property should be set to a function that informs the ws server that a new user has arrived.
+      // Level 2: Allow the client to choose a name. Send that name to the server in a custom message.
+      wsClient.onopen = () => {
+        console.log('Connection opened!', wsClient);
         name = prompt('choose a name');
         
-        ws.send(JSON.stringify({
+        wsClient.send(JSON.stringify({
           type: CLIENT.MESSAGE.NEW_USER,
           payload: { name }
         }));
       }
 
       // .onmessage() is executed when the server sends data to a WebSocket client
-      ws.onmessage = ({ data }) => {
-        const { type, payload } = JSON.parse(data);
+      // Level 1: This property should be set to a function that calls showReceivedMessage() with the incoming message
+      // Level 2: Parse custom message types, formatting each message based on the type.
+      // Level 3: Display additional payload information in the message (such as the user name, timestamps, etc...)
+      wsClient.onmessage = (event) => {
+        const { type, payload } = JSON.parse(event.data);
   
         console.log(type, payload);
         
         switch (type) {
           case SERVER.BROADCAST.NEW_USER:
-            showReceivedMessage(`<em>${payload.name} joined at ${payload.time}</em>`)
+            showMessageReceived(`<em>${payload.name} joined at ${payload.time}</em>`)
             break;
           case SERVER.BROADCAST.NEW_MESSAGE:
-            showReceivedMessage(`<strong>[${payload.name}]</strong> ${payload.message}`);
+            showMessageReceived(`<strong>[${payload.name}]</strong> ${payload.message}`);
             break;
           default:
             break;
         }
       };
 
+      
+
       // .onclose is executed when the socket connection is closed
-      ws.onclose = function() {
-        showReceivedMessage('No WebSocket connection :(');
-        ws = null;
+      wsClient.onclose = function() {
+        showMessageReceived('No WebSocket connection :(');
+        wsClient = null;
       }
 
       // .onerror is executed when error event occurs on the WebSocket connection
-      ws.onerror = function(e) {
+      wsClient.onerror = function(e) {
         console.error("WebSocket error observed:", e);
-        ws = null;
+        wsClient = null;
       }
     }
 
     init();
+
+
+    ///////////////////////////////////////////////
+    ///////////// HELPER FUNCTIONS /////////////////
+    ////////////////////////////////////////////////    
+
+    // This function displays a message in the messages container node. 
+    // className may either be 'mine' or 'yours' (see styles.css for the distinction)
+    function showNewMessage(message, className) {
+      // Create a text node element for the message
+      const textNode = document.createElement('div');
+      textNode.innerHTML = message;
+      textNode.className = 'message';
+      
+      // Wrap the text node in a message element
+      const messageNode = document.createElement('div');
+      messageNode.className = 'messages ' + className;
+      messageNode.appendChild(textNode);
+      
+      // Append the messageNode to the messages container element
+      messages.appendChild(messageNode);
+      messages.scrollTop = messages.scrollHeight;
+    }
   </script>
 </body>
 </html>

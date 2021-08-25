@@ -57,21 +57,21 @@ form {
   display: inline-block;
 }
 
-.yours {
+.receiving {
   align-items: flex-start;
 }
 
-.yours .message {
+.receiving .message {
   margin-right: 25%;
   background-color: #eee;
   position: relative;
 }
 
-.mine {
+.sending {
   align-items: flex-end;
 }
 
-.mine .message {
+.sending .message {
   color: white;
   margin-left: 25%;
   background: linear-gradient(to bottom, #00D0EA 0%, #0085D1 100%);
